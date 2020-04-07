@@ -2,6 +2,8 @@ package user
 
 import (
 	"../sql"
+	"../tools"
+	"encoding/json"
 	"github.com/labstack/echo"
 	"net/http"
 )
@@ -30,4 +32,28 @@ func UserRegistered(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":"注册成功"}`))
 	}
 	return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":"注册失败"}`))
+}
+
+/**
+获取openid
+*/
+func GetOpenId(c echo.Context) error {
+	code := c.FormValue("code")
+	if code == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":"参数错误"}`))
+	}
+	//读取小程序配置
+	data := sql.GetConfig("miniProgram")
+	//发送请求
+	result := tools.Get("https://api.weixin.qq.com/sns/jscode2session?appid=" + data["appId"] + "&secret=" + data["secret"] + "&js_code=" + code + "&grant_type=authorization_code")
+	//解析获取到的json数据
+	var v interface{}
+	json.Unmarshal([]byte(result), &v)
+	openid := v.(map[string]interface{})["openid"]
+	if openid != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{"openid":"`+openid.(string)+`"}}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":"无法获取openid"}`))
+	}
+
 }
