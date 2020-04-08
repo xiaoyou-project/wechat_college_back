@@ -3,6 +3,7 @@ package sql
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL" //这里我们导入驱动
 	"github.com/Unknwon/goconfig"
 	"strings"
@@ -71,7 +72,7 @@ func DB_close() error {
 数据库查询语句
 */
 func Sql_dql(sql string) ([][]string, error) {
-	//fmt.Println(sql)
+	fmt.Println(sql)
 	//数据库自动重连
 	DB_ReConnect()
 	var result [][]string
