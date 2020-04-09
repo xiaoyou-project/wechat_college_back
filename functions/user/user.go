@@ -25,11 +25,13 @@ func UserRegistered(c echo.Context) error {
 		if err != nil {
 			return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"数据库查询失败"}`))
 		}
-		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"该用户已注册"}`))
+		//更新个人的信息
+		sql.Sql_dml("update user_info set imgUrl='" + avatar + "',nickName='" + nickname + "' where openid='" + openid + "'")
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{"userID":`+data[0][0]+`},"msg":"获取用户信息成功"}`))
 	}
 	//用户没有注册，自动插入数据
-	if sql.Sql_dml("insert into user_info (`imgUrl`,`nickName`,`registeredTime`,`sex`,`name`,`college`,`openid`) values ('" + avatar + "','" + nickname + "',now(),'保密','无名侠','保密','" + openid + "')") {
-		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{},"msg":"注册成功"}`))
+	if result, id := sql.Sql_dml_id("insert into user_info (`imgUrl`,`nickName`,`registeredTime`,`sex`,`name`,`college`,`openid`) values ('" + avatar + "','" + nickname + "',now(),'保密','无名侠','保密','" + openid + "')"); result {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{"userID":`+id+`},"msg":"注册成功"}`))
 	}
 	return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"注册失败"}`))
 }
@@ -116,13 +118,13 @@ func UpdateUserInfo(c echo.Context) error {
 */
 func GetShareList(c echo.Context) error {
 	//获取参数
-	openid := c.FormValue("openid")
+	userId := c.FormValue("userId")
 	//参数不能为空
-	if openid == "" {
+	if userId == "" {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name from user_info a,share b,plate c where a.ID=b.userID and b.plateID=c.ID and a.openid='" + openid + "'")
+	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name from share b,plate c where b.plateID=c.ID and b.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -141,7 +143,12 @@ func GetShareList(c echo.Context) error {
 	}
 	//解析为json数据
 	str, _ := json.Marshal(datas)
-	return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
 }
 
 /**
@@ -149,10 +156,315 @@ func GetShareList(c echo.Context) error {
 */
 func GetCardList(c echo.Context) error {
 	//获取参数
-	openid := c.FormValue("openid")
+	userId := c.FormValue("userId")
 	//参数不能为空
-	if openid == "" {
+	if userId == "" {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
-	return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"接口开发中"}`))
+	//获取加入的打卡
+	result, err := sql.Sql_dql("select a.ID,a.title,a.content,a.totalDay,b.keepDay from card a,user_card b where b.cardID=a.ID and b.userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		data["id"] = v[0]
+		data["title"] = v[1]
+		data["description"] = tools.GetDescription(v[2])
+		data["keepDay"] = v[4]
+		data["totalDay"] = v[3]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+获取个人中心的话题列表
+*/
+func GetTopicalList(c echo.Context) error {
+	//获取参数
+	userId := c.FormValue("userId")
+	//参数不能为空
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//获取加入的打卡
+	result, err := sql.Sql_dql("select `ID`,`name`,`content`,`view`,`date` from plate where plateType=1 and userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		data["id"] = v[0]
+		data["name"] = v[1]
+		data["description"] = tools.GetDescription(v[2])
+		data["view"] = v[3]
+		data["time"] = v[4]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+获取个人收藏列表
+*/
+func GetCollectTopicalList(c echo.Context) error {
+	//获取参数
+	userId := c.FormValue("userId")
+	//参数不能为空
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//获取加入的打卡
+	result, err := sql.Sql_dql("select a.ID,a.name,a.content,a.view,a.date from plate a,user_collect b where a.ID=b.shareID and b.collectType=3 and b.userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		data["id"] = v[0]
+		data["name"] = v[1]
+		data["description"] = tools.GetDescription(v[2])
+		data["view"] = v[3]
+		data["time"] = v[4]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+获取个人收藏的经验
+*/
+func GetCollectShareList(c echo.Context) error {
+	//获取参数
+	userId := c.FormValue("userId")
+	//参数不能为空
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//连表查询获取个人分享的内容
+	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name from user_collect a,share b,plate c where b.plateID=c.ID and a.shareID=b.ID and a.collectType=2 and a.userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		data["id"] = v[0]
+		data["title"] = v[1]
+		data["time"] = v[2]
+		data["view"] = v[3]
+		data["description"] = tools.GetDescription(v[4])
+		data["img"] = tools.GetDefaultImg(v[5])
+		data["plate"] = v[6]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+获取收到的评论信息
+*/
+func GetCommentMessage(c echo.Context) error {
+	//获取参数
+	userId := c.FormValue("userId")
+	//参数不能为空
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//连表查询获取个人分享的内容
+	result, err := sql.Sql_dql("select a.ID,b.nickName,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=2 and a.userID=b.ID and a.userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		//判断类型获取标题和id
+		if v[4] == "2" {
+			data["type"] = "share"
+			result, err := sql.Sql_dql("select title from share where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = result[0][0]
+		} else if v[4] == "1" {
+			data["type"] = "topical"
+			result, err := sql.Sql_dql("select name from plate where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = result[0][0]
+		}
+		data["id"] = v[0]
+		data["name"] = v[1]
+		data["status"] = v[2]
+		data["time"] = v[3]
+		data["postID"] = v[5]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+获取收到的赞的消息
+*/
+func GetGoodMessage(c echo.Context) error {
+	//获取参数
+	userId := c.FormValue("userId")
+	//参数不能为空
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//连表查询获取个人分享的内容
+	result, err := sql.Sql_dql("select a.ID,b.nickName,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=1 and a.userID=b.ID and a.userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		//判断类型获取标题和id
+		if v[4] == "2" {
+			data["type"] = "share"
+			result, err := sql.Sql_dql("select title from share where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = result[0][0]
+		} else if v[4] == "1" {
+			data["type"] = "topical"
+			result, err := sql.Sql_dql("select name from plate where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = result[0][0]
+		} else if v[4] == "3" {
+			data["type"] = "comment"
+			result, err := sql.Sql_dql("select content from comment where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = tools.GetDescription(result[0][0])
+		}
+		data["id"] = v[0]
+		data["name"] = v[1]
+		data["status"] = v[2]
+		data["time"] = v[3]
+		data["postID"] = v[5]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+获取系统消息
+*/
+func GetSystemMessage(c echo.Context) error {
+	//获取参数
+	userId := c.FormValue("userId")
+	//参数不能为空
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//连表查询获取个人分享的内容
+	result, err := sql.Sql_dql("select ID,detail,date,status from message where messageType=3 and userID=" + userId + "")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		//判断类型获取标题和id
+		data["id"] = v[0]
+		data["content"] = v[1]
+		data["time"] = v[2]
+		data["status"] = v[3]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+}
+
+/**
+修改消息的状态
+*/
+func SetMessageStatus(c echo.Context) error {
+	id := c.FormValue("messageId")
+	status := c.FormValue("status")
+	//判断参数是否为空
+	if id == "" || status == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//判断是已读还是删除
+	result := false
+	if status == "2" {
+		result = sql.Sql_dml("update message set messageType=4 where ID=" + id)
+	} else if status == "1" {
+		result = sql.Sql_dml("update message set status=1 where ID=" + id)
+	}
+	//返回相应结果
+	if result {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{},"msg":"更新状态成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"更新状态失败"}`))
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL" //这里我们导入驱动
 	"github.com/Unknwon/goconfig"
+	"strconv"
 	"strings"
 )
 
@@ -126,7 +127,7 @@ func Sql_map(sql string) (map[string]string, error) {
 sql执行语句
 */
 func Sql_dml(sql string) bool {
-	//fmt.Println(sql)
+	fmt.Println(sql)
 	//数据库自动重连
 	DB_ReConnect()
 	tx, err := DB.Begin()
@@ -141,4 +142,28 @@ func Sql_dml(sql string) bool {
 		}
 	}
 	return false
+}
+
+/**
+sql执行语句插入后返回id
+*/
+func Sql_dml_id(sql string) (bool, string) {
+	//数据库自动重连
+	DB_ReConnect()
+	tx, err := DB.Begin()
+	if err != nil {
+		return false, ""
+	}
+	res, err := tx.Exec(sql)
+	if err == nil {
+		err = tx.Commit()
+		if err == nil {
+			id, err := res.LastInsertId()
+			//这里再执行语句，获取自增id
+			if err == nil {
+				return true, strconv.Itoa(int(id))
+			}
+		}
+	}
+	return false, ""
 }
