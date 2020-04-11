@@ -1,6 +1,9 @@
 package route
 
 import (
+	"../functions/card"
+	"../functions/comment"
+	"../functions/plate"
 	"../functions/topical"
 	"../functions/user"
 	"github.com/labstack/echo"
@@ -46,6 +49,52 @@ func Route(e *echo.Echo) {
 	e.POST("/api/topical/update/collect", topical.UpdateCollect)
 	/*删除话题*/
 	e.POST("/api/topical/delete", topical.DeleteTopical)
+
 	/*获取评论内容*/
-	e.GET("/api/comment/get/commentList", topical.GetCommentList)
+	e.GET("/api/comment/get/commentList", comment.GetCommentList)
+	/*删除评论*/
+	e.POST("/api/comment/delete", comment.DeleteComment)
+	/*发表评论*/
+	e.POST("/api/comment/publish", comment.PublishComment)
+	/*评论点赞或者取消赞*/
+	e.POST("/api/comment/update/good", comment.UpdateGood)
+	/*判断评论类型*/
+	e.GET("/api/comment/type", comment.CommentType)
+
+	/*获取所有板块*/
+	e.GET("/api/plate/get/plateList", plate.GetPlateList)
+	/*获取经验列表*/
+	e.GET("/api/plate/get/shareList", plate.GetShareList)
+	/*获取经验内容*/
+	e.GET("/api/plate/get/shareContent", plate.GetShareContent)
+	/*修改经验内容*/
+	e.POST("/api/plate/edit/shareContent", plate.EditShareContent)
+	/*点赞或者取消点赞*/
+	e.POST("/api/plate/update/good", plate.UpdateGood)
+	/*收藏或者取消收藏经验*/
+	e.POST("/api/plate/update/collect", plate.UpdateCollect)
+	/*删除经验内容*/
+	e.POST("/api/plate/delete/shareContent", plate.DeleteShare)
+	/*获取我收藏的板块*/
+	e.GET("/api/plate/get/collect/plateList", plate.GetCollectPlate)
+	/*收藏板块*/
+	e.POST("/api/plate/update/collect", plate.CollectPlate)
+	/*申请板块*/
+	e.POST("/api/plate/application/plate", plate.ApplicationPlate)
+
+	/*获取我的打卡*/
+	e.GET("/api/card/get/me/cardList", card.GetCardList)
+	/*获取所有打卡*/
+	e.GET("/api/card/get/cardList", card.GetAllCard)
+	/*发起新的打卡*/
+	e.POST("/api/card/release", card.ReleaseCard)
+	/*获取打卡内容*/
+	e.GET("/api/card/get/cardContent", card.GetCardContent)
+	/*完成打卡*/
+	e.POST("/api/card/finish", card.FinishCard)
+	/*加入打卡*/
+	e.POST("/api/card/join", card.JoinCard)
+	/*删除打卡*/
+	e.POST("/api/card/delete", card.DeleteCard)
+
 }

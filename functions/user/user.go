@@ -124,7 +124,7 @@ func GetShareList(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name from share b,plate c where b.plateID=c.ID and b.userID=" + userId + "")
+	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name,b.good from share b,plate c where b.plateID=c.ID and b.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -139,6 +139,7 @@ func GetShareList(c echo.Context) error {
 		data["description"] = tools.GetDescription(v[4])
 		data["img"] = tools.GetDefaultImg(v[5])
 		data["plate"] = v[6]
+		data["good"] = v[7]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -162,7 +163,7 @@ func GetCardList(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//获取加入的打卡
-	result, err := sql.Sql_dql("select a.ID,a.title,a.content,a.totalDay,b.keepDay from card a,user_card b where b.cardID=a.ID and b.userID=" + userId + "")
+	result, err := sql.Sql_dql("select a.ID,a.title,a.content,a.totalDay,b.keepDay from card a,user_card b where b.cardID=a.ID and b.userID=" + userId)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -198,7 +199,7 @@ func GetTopicalList(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//获取加入的打卡
-	result, err := sql.Sql_dql("select `ID`,`name`,`content`,`view`,`date` from plate where plateType=1 and userID=" + userId + "")
+	result, err := sql.Sql_dql("select `ID`,`name`,`content`,`view`,`date`,`good` from plate where plateType=1 and userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -211,6 +212,7 @@ func GetTopicalList(c echo.Context) error {
 		data["description"] = tools.GetDescription(v[2])
 		data["view"] = v[3]
 		data["time"] = v[4]
+		data["good"] = v[5]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -308,7 +310,7 @@ func GetCommentMessage(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,b.nickName,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=2 and a.userID=b.ID and a.userID=" + userId + "")
+	result, err := sql.Sql_dql("select a.ID,b.nickName,a.status,a.date,c.commentType,c.shareID,c.content from message a,user_info b,comment c where a.messageType=2 and a.userID=b.ID and a.postID=c.ID and a.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -337,6 +339,7 @@ func GetCommentMessage(c echo.Context) error {
 		data["status"] = v[2]
 		data["time"] = v[3]
 		data["postID"] = v[5]
+		data["content"] = v[6]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -360,7 +363,7 @@ func GetGoodMessage(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,b.nickName,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=1 and a.userID=b.ID and a.userID=" + userId + "")
+	result, err := sql.Sql_dql("select a.ID,b.name,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=1 and a.userID=b.ID and a.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}

@@ -67,7 +67,7 @@ func GetTopicalContent(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.name,a.content,a.view,a.good,b.nickName,b.imgUrl from plate a,user_info b where a.userID=b.ID and a.ID=" + topicalId)
+	result, err := sql.Sql_dql("select a.name,a.content,a.view,a.good,b.name,b.imgUrl from plate a,user_info b where a.userID=b.ID and a.ID=" + topicalId)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -182,52 +182,5 @@ func DeleteTopical(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{},"msg":"删除话题成功"}`))
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"删除话题失败"}`))
-	}
-}
-
-/**
-获取评论内容
-*/
-func GetCommentList(c echo.Context) error {
-	//获取评论的内容
-	//获取参数
-	id := c.FormValue("postID")
-	postType := c.FormValue("postType")
-	userId := c.FormValue("userId")
-	//判断参数
-	if userId == "" || id == "" || postType == "" {
-		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
-	}
-	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,b.nickName,a.good,a.content,b.imgUrl,b.ID,a.date from comment a,user_info b where a.commentType=" + postType + " and a.userID=b.ID and a.shareID=" + id)
-	if err != nil {
-		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
-	}
-	datas := new([]map[string]string)
-	//遍历result
-	for _, v := range result {
-		data := make(map[string]string)
-		data["id"] = v[0]
-		data["name"] = v[1]
-		data["good"] = v[2]
-		data["content"] = v[3]
-		data["imgUrl"] = v[4]
-		data["userID"] = v[5]
-		data["time"] = v[6]
-		//判断是否点赞该评论
-		if good, _ := sql.Sql_dql("select ID from good where postType=3 and userID=" + userId + " and postID=" + v[0]); good != nil && good[0][0] != "" {
-			data["state"] = "1"
-		} else {
-			data["state"] = "0"
-		}
-		*datas = append(*datas, data)
-	}
-	//解析为json数据
-	str, _ := json.Marshal(datas)
-	//判断数据是否为空
-	if result[0][0] == "" {
-		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
-	} else {
-		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
 	}
 }
