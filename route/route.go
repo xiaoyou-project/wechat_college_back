@@ -5,6 +5,7 @@ import (
 	"../functions/comment"
 	"../functions/plate"
 	"../functions/topical"
+	"../functions/upload"
 	"../functions/user"
 	"github.com/labstack/echo"
 )
@@ -81,6 +82,8 @@ func Route(e *echo.Echo) {
 	e.POST("/api/plate/update/collect", plate.CollectPlate)
 	/*申请板块*/
 	e.POST("/api/plate/application/plate", plate.ApplicationPlate)
+	/*发布新的经验*/
+	e.POST("/api/plate/release/share", plate.ReleaseNewShare)
 
 	/*获取我的打卡*/
 	e.GET("/api/card/get/me/cardList", card.GetCardList)
@@ -96,5 +99,12 @@ func Route(e *echo.Echo) {
 	e.POST("/api/card/join", card.JoinCard)
 	/*删除打卡*/
 	e.POST("/api/card/delete", card.DeleteCard)
+	/*退出打卡*/
+	e.POST("/api/card/abort", card.AbortCard)
 
+	/*上传图片并保存到本地*/
+	e.POST("/api/img/upload", upload.UploadFile)
+
+	/*注册静态文件路由*/
+	e.Static("/static", "static")
 }

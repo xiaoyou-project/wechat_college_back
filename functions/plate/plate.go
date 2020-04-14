@@ -13,7 +13,7 @@ import (
 */
 func GetPlateList(c echo.Context) error {
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,a.name,a.imgUrl,(select count(ID) from share where a.ID=plateID) from plate a where a.plateType=0 and a.status=1")
+	result, err := sql.Sql_dql("select a.ID,a.name,a.imgUrl,(select count(ID) from share where a.ID=plateID),a.content from plate a where a.plateType=0 and a.status=1")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -26,6 +26,7 @@ func GetPlateList(c echo.Context) error {
 		data["name"] = v[1]
 		data["imgUrl"] = v[2]
 		data["total"] = v[3]
+		data["description"] = v[4]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -91,7 +92,7 @@ func GetShareContent(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.content,a.title,a.date,b.imgUrl,b.name,a.imgUrl,a.view,a.good from share a,user_info b where a.userID=b.ID and a.ID=" + shareId)
+	result, err := sql.Sql_dql("select a.content,a.title,a.date,b.imgUrl,b.name,a.imgUrl,a.view,a.good,b.ID from share a,user_info b where a.userID=b.ID and a.ID=" + shareId)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -119,6 +120,7 @@ func GetShareContent(c echo.Context) error {
 	data["img"] = result[0][5]
 	data["view"] = result[0][6]
 	data["good"] = result[0][7]
+	data["authorID"] = result[0][8]
 	//解析为json数据
 	str, _ := json.Marshal(data)
 	//判断数据是否为空
@@ -315,4 +317,27 @@ func ApplicationPlate(c echo.Context) error {
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"申请板块失败"}`))
 	}
+}
+
+/**
+发布新的经验
+*/
+func ReleaseNewShare(c echo.Context) error {
+	//获取参数
+	content := c.FormValue("content")
+	name := c.FormValue("title")
+	userId := c.FormValue("userID")
+	plateId := c.FormValue("plateID")
+	imgUrl := c.FormValue("imgUrl")
+	//判断参数
+	if userId == "" || content == "" || name == "" || plateId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//判断结构
+	if sql.Sql_dml("insert into share (`title`,`userID`,`content`,`imgUrl`,`view`,`date`,`good`,`editTime`,`plateID`) values ('" + name + "'," + userId + ",'" + content + "','" + imgUrl + "',0,now(),0,now()," + plateId + ")") {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{},"msg":"发布经验成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"发布经验失败"}`))
+	}
+
 }

@@ -227,3 +227,21 @@ func DeleteCard(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":[],"msg":"删除打卡失败"}`))
 	}
 }
+
+/**
+退出打卡
+*/
+func AbortCard(c echo.Context) error {
+	userID := c.FormValue("userID")
+	id := c.FormValue("cardID")
+	//判断参数是否为空
+	if userID == "" || id == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//删除用户的打卡记录
+	if sql.Sql_dml("delete from user_card where cardID=" + id + " and userID=" + userID) {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"退出打卡成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":[],"msg":"退出打卡失败"}`))
+	}
+}

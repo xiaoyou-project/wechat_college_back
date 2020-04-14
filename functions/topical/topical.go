@@ -67,7 +67,7 @@ func GetTopicalContent(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.name,a.content,a.view,a.good,b.name,b.imgUrl from plate a,user_info b where a.userID=b.ID and a.ID=" + topicalId)
+	result, err := sql.Sql_dql("select a.name,a.content,a.view,a.good,b.name,b.imgUrl,a.date,a.userID from plate a,user_info b where a.userID=b.ID and a.ID=" + topicalId)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -93,6 +93,8 @@ func GetTopicalContent(c echo.Context) error {
 	data["good"] = result[0][3]
 	data["name"] = result[0][4]
 	data["imgUrl"] = result[0][5]
+	data["time"] = result[0][6]
+	data["authorID"] = result[0][7]
 	//解析为json数据
 	str, _ := json.Marshal(data)
 	//判断数据是否为空
