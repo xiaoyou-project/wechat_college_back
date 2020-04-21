@@ -1,6 +1,7 @@
 package route
 
 import (
+	"../functions/admin"
 	"../functions/card"
 	"../functions/comment"
 	"../functions/plate"
@@ -39,7 +40,7 @@ func Route(e *echo.Echo) {
 	e.POST("/api/user/set/messageStatus", user.SetMessageStatus)
 
 	/*获取话题列表*/
-	e.GET("/api/user/get/system/messageList", topical.GetTopicalList)
+	e.GET("/api/topical/get/topicalList", topical.GetTopicalList)
 	/*发布话题*/
 	e.POST("/api/topical/release", topical.ReleaseTopical)
 	/*获取话题的内容*/
@@ -73,7 +74,7 @@ func Route(e *echo.Echo) {
 	/*点赞或者取消点赞*/
 	e.POST("/api/plate/update/good", plate.UpdateGood)
 	/*收藏或者取消收藏经验*/
-	e.POST("/api/plate/update/collect", plate.UpdateCollect)
+	e.POST("/api/plate/update/collect/share", plate.UpdateCollect)
 	/*删除经验内容*/
 	e.POST("/api/plate/delete/shareContent", plate.DeleteShare)
 	/*获取我收藏的板块*/
@@ -84,6 +85,8 @@ func Route(e *echo.Echo) {
 	e.POST("/api/plate/application/plate", plate.ApplicationPlate)
 	/*发布新的经验*/
 	e.POST("/api/plate/release/share", plate.ReleaseNewShare)
+	/*判断板块是否收藏*/
+	e.GET("/api/plate/status/collect", plate.StatusCollect)
 
 	/*获取我的打卡*/
 	e.GET("/api/card/get/me/cardList", card.GetCardList)
@@ -107,4 +110,11 @@ func Route(e *echo.Echo) {
 
 	/*注册静态文件路由*/
 	e.Static("/static", "static")
+
+	/*和admin相关的路由*/
+	//判断用户是否合法
+	e.POST("/api/admin/token", admin.AdminToken)
+	//获取用户数，话题数，经验数还有打卡数
+	e.GET("/api/admin/visualization/overall", admin.VisualizationOverall)
+
 }

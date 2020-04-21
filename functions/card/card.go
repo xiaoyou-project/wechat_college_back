@@ -1,6 +1,7 @@
 package card
 
 import (
+	"../../common"
 	"../sql"
 	"../tools"
 	"encoding/json"
@@ -21,7 +22,7 @@ func GetCardList(c echo.Context) error {
 	}
 	//查询我的打卡数据
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,b.imgUrl,b.name,a.date,a.title,a.content,c.keepDay,a.totalDay,(select count(ID) from user_card where cardID=a.ID) from card a,user_info b,user_card c where a.userID=b.ID and a.userID=c.userID and c.userID=" + userId)
+	result, err := sql.Sql_dql("select a.ID,b.imgUrl,b.name,a.date,a.title,a.content,c.keepDay,a.totalDay,(select count(ID) from user_card where cardID=a.ID) from card a,user_info b,user_card c where a.userID=b.ID and a.ID=c.cardID and c.userID=" + userId)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -68,7 +69,7 @@ func GetAllCard(c echo.Context) error {
 		data["id"] = v[0]
 		data["imgUrl"] = v[1]
 		data["name"] = v[2]
-		data["time"] = v[3]
+		data["time"] = common.TimeChange(v[3])
 		data["title"] = v[4]
 		data["description"] = tools.GetDescription(v[5])
 		data["keepDay"] = v[6]

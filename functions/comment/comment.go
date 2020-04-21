@@ -85,7 +85,29 @@ func PublishComment(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//插入数据
-	if sql.Sql_dml("insert into comment (`shareID`,`commentType`,`userID`,`content`,`date`,`good`) values (" + postID + "," + commentType + "," + userId + ",'" + content + "',now(),0)") {
+	if errs, id := sql.Sql_dml_id("insert into comment (`shareID`,`commentType`,`userID`,`content`,`date`,`good`) values (" + postID + "," + commentType + "," + userId + ",'" + content + "',now(),0)"); errs {
+		//根据不同的文章查找用户id
+		var result [][]string
+		var err error
+		posType := ""
+		if commentType == "1" {
+			posType = "2"
+			//经验分享
+			result, err = sql.Sql_dql("select userID from share where ID=" + postID)
+		} else if commentType == "2" {
+			posType = "1"
+			//话题
+			result, err = sql.Sql_dql("select userID from plate where ID=" + postID)
+		} else if commentType == "3" {
+			posType = "4"
+			//打卡
+			result, err = sql.Sql_dql("select userID from card where ID=" + postID)
+		}
+		//插入数据
+		if err == nil && result != nil && result[0][0] != "" {
+			sql.Sql_dml("insert into message (`userID`,`messageType`,`postID`,`actionID`,`status`,`date`,`detail`,`postType`) values (" + result[0][0] + ",2," + id + "," + userId + ",0,now(),''," + posType + ")")
+		}
+
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"发表评论成功"}`))
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":[],"msg":"发表评论失败"}`))
@@ -118,6 +140,13 @@ func UpdateGood(c echo.Context) error {
 		//添加点赞数据
 		//添加点赞数据
 		result = sql.Sql_dml("insert into good (`userID`,`postType`,`postID`) values (" + userId + ",3," + id + ")")
+
+		//点赞了才发生消息通知
+		//查询话题的用户id
+		if result, err := sql.Sql_dql("select userID from comment where ID=" + id); err == nil && result[0][0] != "" {
+			//点赞成功后自动添加用户消息里面
+			sql.Sql_dml("insert into message (`userID`,`messageType`,`postID`,`actionID`,`status`,`date`,`detail`,`postType`) values (" + result[0][0] + ",1," + id + "," + userId + ",0,now(),'',3)")
+		}
 	}
 	//判断操作是否成功
 	if result {
@@ -137,12 +166,13 @@ func CommentType(c echo.Context) error {
 	}
 	//返回评论的类型
 	data := make(map[string]string)
-	result, err := sql.Sql_dql("select commentType from comment where ID=" + id)
+	result, err := sql.Sql_dql("select commentType,shareID from comment where ID=" + id)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
 	//判断类型获取标题和id
 	data["type"] = result[0][0]
+	data["postID"] = result[0][1]
 	str, _ := json.Marshal(data)
 	//判断数据是否为空
 	if result[0][0] == "" {

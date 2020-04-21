@@ -1,6 +1,7 @@
 package user
 
 import (
+	"../../common"
 	"../sql"
 	"../tools"
 	"encoding/json"
@@ -236,7 +237,7 @@ func GetCollectTopicalList(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//获取加入的打卡
-	result, err := sql.Sql_dql("select a.ID,a.name,a.content,a.view,a.date from plate a,user_collect b where a.ID=b.shareID and b.collectType=3 and b.userID=" + userId + "")
+	result, err := sql.Sql_dql("select a.ID,a.name,a.content,a.view,a.date,a.good from plate a,user_collect b where a.ID=b.shareID and b.collectType=3 and b.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -249,6 +250,7 @@ func GetCollectTopicalList(c echo.Context) error {
 		data["description"] = tools.GetDescription(v[2])
 		data["view"] = v[3]
 		data["time"] = v[4]
+		data["good"] = v[5]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -272,7 +274,7 @@ func GetCollectShareList(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name from user_collect a,share b,plate c where b.plateID=c.ID and a.shareID=b.ID and a.collectType=2 and a.userID=" + userId + "")
+	result, err := sql.Sql_dql("select b.ID,b.title,b.date,b.view,b.content,b.imgUrl,c.name,b.good from user_collect a,share b,plate c where b.plateID=c.ID and a.shareID=b.ID and a.collectType=2 and a.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -282,11 +284,12 @@ func GetCollectShareList(c echo.Context) error {
 		data := make(map[string]string)
 		data["id"] = v[0]
 		data["title"] = v[1]
-		data["time"] = v[2]
+		data["time"] = common.TimeChange(v[2])
 		data["view"] = v[3]
 		data["description"] = tools.GetDescription(v[4])
 		data["img"] = tools.GetDefaultImg(v[5])
 		data["plate"] = v[6]
+		data["good"] = v[7]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -319,16 +322,23 @@ func GetCommentMessage(c echo.Context) error {
 	for _, v := range result {
 		data := make(map[string]string)
 		//判断类型获取标题和id
-		if v[4] == "2" {
+		if v[4] == "1" {
 			data["type"] = "share"
 			result, err := sql.Sql_dql("select title from share where ID=" + v[5])
 			if err != nil {
 				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 			}
 			data["postTitle"] = result[0][0]
-		} else if v[4] == "1" {
+		} else if v[4] == "2" {
 			data["type"] = "topical"
 			result, err := sql.Sql_dql("select name from plate where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = result[0][0]
+		} else if v[4] == "3" {
+			data["type"] = "card"
+			result, err := sql.Sql_dql("select title from card where ID=" + v[5])
 			if err != nil {
 				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 			}
@@ -389,6 +399,13 @@ func GetGoodMessage(c echo.Context) error {
 		} else if v[4] == "3" {
 			data["type"] = "comment"
 			result, err := sql.Sql_dql("select content from comment where ID=" + v[5])
+			if err != nil {
+				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+			}
+			data["postTitle"] = tools.GetDescription(result[0][0])
+		} else if v[4] == "4" {
+			data["type"] = "card"
+			result, err := sql.Sql_dql("select title from card where ID=" + v[5])
 			if err != nil {
 				return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 			}

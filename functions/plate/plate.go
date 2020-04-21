@@ -1,6 +1,7 @@
 package plate
 
 import (
+	"../../common"
 	"../sql"
 	"../tools"
 	"encoding/json"
@@ -59,7 +60,7 @@ func GetShareList(c echo.Context) error {
 		data := make(map[string]string)
 		//判断类型获取标题和id
 		data["id"] = v[0]
-		data["time"] = v[1]
+		data["time"] = common.TimeChange(v[1])
 		data["title"] = v[2]
 		data["avatar"] = v[3]
 		data["name"] = v[4]
@@ -173,6 +174,13 @@ func UpdateGood(c echo.Context) error {
 		//删除点赞数据
 		result = sql.Sql_dml("delete from good where postType=1 and userID=" + userId + " and postID=" + id)
 	} else {
+		//点赞了才发生消息通知
+		//查询话题的用户id
+		if result, err := sql.Sql_dql("select userID from share where ID=" + id); err == nil && result[0][0] != "" {
+			//点赞成功后自动添加用户消息里面
+			sql.Sql_dml("insert into message (`userID`,`messageType`,`postID`,`actionID`,`status`,`date`,`detail`,`postType`) values (" + result[0][0] + ",1," + id + "," + userId + ",0,now(),'',2)")
+		}
+
 		//说明没有点赞
 		//点赞数+1
 		sql.Sql_dml("update share set good=good+1 where ID=" + id)
@@ -246,7 +254,7 @@ func GetCollectPlate(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,a.name,a.imgUrl,(select count(ID) from share where plateID=a.ID) from plate a,user_collect b where b.collectType=1 and a.ID=b.shareID and b.userID=" + userId)
+	result, err := sql.Sql_dql("select a.ID,a.name,a.imgUrl,(select count(ID) from share where plateID=a.ID),a.content from plate a,user_collect b where b.collectType=1 and a.ID=b.shareID and b.userID=" + userId)
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -259,6 +267,7 @@ func GetCollectPlate(c echo.Context) error {
 		data["name"] = v[1]
 		data["imgUrl"] = v[2]
 		data["total"] = v[3]
+		data["description"] = tools.GetDescription(v[4])
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -307,12 +316,13 @@ func ApplicationPlate(c echo.Context) error {
 	content := c.FormValue("content")
 	name := c.FormValue("name")
 	userId := c.FormValue("userID")
+	imgUrl := c.FormValue("imgUrl")
 	//判断参数
 	if userId == "" || content == "" || name == "" {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//判断结构
-	if sql.Sql_dml("insert into plate (`name`,`imgUrl`,`content`,`userID`,`status`,`view`,`date`,`good`,`plateType`) values ('" + name + "','','" + content + "'," + userId + ",0,0,now(),0,0)") {
+	if sql.Sql_dml("insert into plate (`name`,`imgUrl`,`content`,`userID`,`status`,`view`,`date`,`good`,`plateType`) values ('" + name + "','" + imgUrl + "','" + content + "'," + userId + ",0,0,now(),0,0)") {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{},"msg":"申请板块成功"}`))
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"申请板块失败"}`))
@@ -340,4 +350,27 @@ func ReleaseNewShare(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"发布经验失败"}`))
 	}
 
+}
+
+/**
+判断板块是否收藏
+*/
+func StatusCollect(c echo.Context) error {
+	//获取参数
+	plateId := c.FormValue("plateID")
+	userId := c.FormValue("userID")
+	//判断参数
+	if userId == "" || plateId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
+	//判断用户是否收藏
+	if result, err := sql.Sql_dql("select ID from user_collect where collectType=1 and userID=" + userId + " and shareID=" + plateId); err != nil || result[0][0] == "" {
+		if err != nil {
+			return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"查询数据失败"}`))
+		} else {
+			return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{"code":0},"msg":"用户没有收藏该板块"}`))
+		}
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{"code":1},"msg":"用户收藏了这个板块"}`))
+	}
 }

@@ -1,6 +1,7 @@
 package topical
 
 import (
+	"../../common"
 	"../sql"
 	"encoding/json"
 	"github.com/labstack/echo"
@@ -93,7 +94,7 @@ func GetTopicalContent(c echo.Context) error {
 	data["good"] = result[0][3]
 	data["name"] = result[0][4]
 	data["imgUrl"] = result[0][5]
-	data["time"] = result[0][6]
+	data["time"] = common.TimeChange(result[0][6])
 	data["authorID"] = result[0][7]
 	//解析为json数据
 	str, _ := json.Marshal(data)
@@ -131,6 +132,13 @@ func TopicalGood(c echo.Context) error {
 		//添加点赞数据
 		//添加点赞数据
 		result = sql.Sql_dml("insert into good (`userID`,`postType`,`postID`) values (" + userId + ",2," + id + ")")
+
+		//点赞了才发生消息通知
+		//查询话题的用户id
+		if result, err := sql.Sql_dql("select userID from plate where ID=" + id); err == nil && result[0][0] != "" {
+			//点赞成功后自动添加用户消息里面
+			sql.Sql_dml("insert into message (`userID`,`messageType`,`postID`,`actionID`,`status`,`date`,`detail`,`postType`) values (" + result[0][0] + ",1," + id + "," + userId + ",0,now(),'',1)")
+		}
 	}
 	//判断操作是否成功
 	if result {
