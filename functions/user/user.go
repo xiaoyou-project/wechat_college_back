@@ -135,7 +135,7 @@ func GetShareList(c echo.Context) error {
 		data := make(map[string]string)
 		data["id"] = v[0]
 		data["title"] = v[1]
-		data["time"] = v[2]
+		data["time"] = common.TimeChange(v[2])
 		data["view"] = v[3]
 		data["description"] = tools.GetDescription(v[4])
 		data["img"] = tools.GetDefaultImg(v[5])
@@ -373,7 +373,7 @@ func GetGoodMessage(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,b.name,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=1 and a.userID=b.ID and a.userID=" + userId + "")
+	result, err := sql.Sql_dql("select a.ID,b.name,a.status,a.date,a.postType,a.postID from message a,user_info b where a.messageType=1 and a.actionID=b.ID and a.userID=" + userId + "")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}

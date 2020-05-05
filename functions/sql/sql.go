@@ -35,7 +35,7 @@ func Init_Db() bool {
 	//读取配置
 	data := GetConfig("mysql")
 	//构建连接："用户名:密码@tcp(IP:端口)/数据库?charset=utf8"
-	path := strings.Join([]string{data["username"], ":", data["password"], "@tcp(", data["ip"], ":", data["port"], ")/", data["DBname"], "?charset=utf8"}, "")
+	path := strings.Join([]string{data["username"], ":", data["password"], "@tcp(", data["ip"], ":", data["port"], ")/", data["DBname"], "?charset=utf8mb4&collation=utf8mb4_unicode_ci"}, "")
 	////打开数据库,前者是驱动名，所以要导入： _ "github.com/go-sqltool-driver/mysql"
 	DB, _ = sql.Open("mysql", path)
 	////设置数据库最大连接数
@@ -148,6 +148,7 @@ func Sql_dml(sql string) bool {
 sql执行语句插入后返回id
 */
 func Sql_dml_id(sql string) (bool, string) {
+	fmt.Println(sql)
 	//数据库自动重连
 	DB_ReConnect()
 	tx, err := DB.Begin()

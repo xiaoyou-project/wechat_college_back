@@ -143,7 +143,7 @@ func EditShareContent(c echo.Context) error {
 	imgUrl := c.FormValue("imgUrl")
 	title := c.FormValue("title")
 	//判断参数是否为空
-	if userId == "" || shareId == "" || content == "" || imgUrl == "" || title == "" {
+	if userId == "" || shareId == "" || content == "" || title == "" {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//更新数据
@@ -372,5 +372,41 @@ func StatusCollect(c echo.Context) error {
 		}
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{"code":1},"msg":"用户收藏了这个板块"}`))
+	}
+}
+
+/*搜索经验*/
+func SearchShare(c echo.Context) error {
+	//获取关键词
+	content := c.FormValue("content")
+	//连表查询获取个人分享的内容
+	result, err := sql.Sql_dql("select a.ID,a.date,a.title,u.imgUrl,u.name,a.content,a.imgUrl,a.view,a.good,(select count(ID) from comment where commentType=1 and shareID=a.ID) from share a,user_info u,plate b where a.userID=u.ID and a.plateID=b.ID and (a.title like '%" + content + "%' or a.content like '%" + content + "%')")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		//判断类型获取标题和id
+		data["id"] = v[0]
+		data["time"] = common.TimeChange(v[1])
+		data["title"] = v[2]
+		data["avatar"] = v[3]
+		data["name"] = v[4]
+		data["content"] = tools.GetDescription(v[5])
+		data["img"] = tools.GetDefaultImg(v[6])
+		data["total"] = v[8]
+		data["view"] = v[7]
+		data["comments"] = v[9]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
 	}
 }

@@ -194,3 +194,32 @@ func DeleteTopical(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"删除话题失败"}`))
 	}
 }
+
+/*搜索话题*/
+func SearchTopical(c echo.Context) error {
+	//获取关键词
+	content := c.FormValue("content")
+	//连表查询获取个人分享的内容
+	result, err := sql.Sql_dql("select ID,name,view from plate where plateType=1 and (name like '%" + content + "%' or content like '%" + content + "%') order by view desc")
+	if err != nil {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
+	}
+	datas := new([]map[string]string)
+	//遍历result
+	for _, v := range result {
+		data := make(map[string]string)
+		data["id"] = v[0]
+		data["title"] = v[1]
+		data["view"] = v[2]
+		*datas = append(*datas, data)
+	}
+	//解析为json数据
+	str, _ := json.Marshal(datas)
+	//判断数据是否为空
+	if result[0][0] == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	}
+
+}

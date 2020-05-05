@@ -3,6 +3,7 @@ package comment
 import (
 	"../sql"
 	"encoding/json"
+	"fmt"
 	"github.com/labstack/echo"
 	"net/http"
 )
@@ -80,6 +81,7 @@ func PublishComment(c echo.Context) error {
 	userId := c.FormValue("userID")
 	content := c.FormValue("content")
 	postID := c.FormValue("postID")
+	fmt.Println(content)
 	//判断参数是否为空
 	if commentType == "" || userId == "" || content == "" || postID == "" {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))

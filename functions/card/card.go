@@ -34,7 +34,7 @@ func GetCardList(c echo.Context) error {
 		data["id"] = v[0]
 		data["imgUrl"] = v[1]
 		data["name"] = v[2]
-		data["time"] = v[3]
+		data["time"] = common.TimeChange(v[3])
 		data["title"] = v[4]
 		data["description"] = tools.GetDescription(v[5])
 		data["keepDay"] = v[6]
@@ -56,8 +56,12 @@ func GetCardList(c echo.Context) error {
 获取所有的打卡数据
 */
 func GetAllCard(c echo.Context) error {
+	userId := c.FormValue("userID")
+	if userId == "" {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
+	}
 	//连表查询获取个人分享的内容
-	result, err := sql.Sql_dql("select a.ID,b.imgUrl,b.name,a.date,a.title,a.content,a.keepDay,a.totalDay,(select count(ID) from user_card where cardID=a.ID) from card a,user_info b where a.userID=b.ID")
+	result, err := sql.Sql_dql("select a.ID,b.imgUrl,b.name,a.date,a.title,a.content,a.keepDay,a.totalDay,(select count(ID) from user_card where cardID=a.ID),b.ID from card a,user_info b where a.userID=b.ID")
 	if err != nil {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"读取数据库失败"}`))
 	}
@@ -71,10 +75,16 @@ func GetAllCard(c echo.Context) error {
 		data["name"] = v[2]
 		data["time"] = common.TimeChange(v[3])
 		data["title"] = v[4]
-		data["description"] = tools.GetDescription(v[5])
-		data["keepDay"] = v[6]
+		data["description"] = v[5]
+		//判断用户是否加了这个打卡
+		if result, err := sql.Sql_dql("select ID,keepDay from user_card where userID=" + userId + " and cardID=" + v[0]); err == nil && result[0][0] != "" {
+			data["keepDay"] = result[0][1]
+		} else {
+			data["keepDay"] = "-1"
+		}
 		data["totalDay"] = v[7]
 		data["peoples"] = v[8]
+		data["userID"] = v[9]
 		*datas = append(*datas, data)
 	}
 	//解析为json数据
@@ -103,7 +113,7 @@ func ReleaseCard(c echo.Context) error {
 	//判断结构
 	if result, id := sql.Sql_dml_id("insert into card (`title`,`content`,`totalDay`,`keepDay`,`userID`,`date`) values ('" + name + "','" + content + "'," + totalDay + ",0," + userID + ",now())"); result {
 		//成功后把自己的打卡也放进去
-		sql.Sql_dml("insert into user_card (`userID`,`cardID`,`keepDay`,`lastTime`) values (" + userID + "," + id + ",1,now())")
+		sql.Sql_dml("insert into user_card (`userID`,`cardID`,`keepDay`,`lastTime`) values (" + userID + "," + id + ",0,date_sub(now(),interval 1 day))")
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":{},"msg":"发起打卡成功"}`))
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"发起打卡失败"}`))
@@ -202,7 +212,7 @@ func JoinCard(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":{},"msg":"参数错误"}`))
 	}
 	//更新打卡天数
-	if sql.Sql_dml("insert into user_card (`userID`,`cardID`,`keepDay`,`lastTime`) values (" + userID + "," + id + ",0,now())") {
+	if sql.Sql_dml("insert into user_card (`userID`,`cardID`,`keepDay`,`lastTime`) values (" + userID + "," + id + ",0,date_sub(now(),interval 1 day))") {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":[],"msg":"加入打卡成功"}`))
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":[],"msg":"加入打卡失败"}`))

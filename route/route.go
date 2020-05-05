@@ -51,6 +51,8 @@ func Route(e *echo.Echo) {
 	e.POST("/api/topical/update/collect", topical.UpdateCollect)
 	/*删除话题*/
 	e.POST("/api/topical/delete", topical.DeleteTopical)
+	/*搜索话题*/
+	e.GET("/api/topical/get/search/topicalList", topical.SearchTopical)
 
 	/*获取评论内容*/
 	e.GET("/api/comment/get/commentList", comment.GetCommentList)
@@ -87,6 +89,8 @@ func Route(e *echo.Echo) {
 	e.POST("/api/plate/release/share", plate.ReleaseNewShare)
 	/*判断板块是否收藏*/
 	e.GET("/api/plate/status/collect", plate.StatusCollect)
+	/*搜索经验*/
+	e.GET("/api/plate/get/search/shareList", plate.SearchShare)
 
 	/*获取我的打卡*/
 	e.GET("/api/card/get/me/cardList", card.GetCardList)
@@ -116,5 +120,38 @@ func Route(e *echo.Echo) {
 	e.POST("/api/admin/token", admin.AdminToken)
 	//获取用户数，话题数，经验数还有打卡数
 	e.GET("/api/admin/visualization/overall", admin.VisualizationOverall)
+	//获取所有的板块列表
+	e.GET("/api/admin/plate/get/plateList", admin.GetAllPlate)
+	//获取所有用户
+	e.GET("/api/admin/user/get/userList", admin.GetAllUser)
+	//删除用户
+	e.GET("/api/admin/user/delete", admin.DeleteUser)
+	//删除板块
+	e.GET("/api/admin/plate/delete", admin.DeletePlate)
+	//修改板块信息
+	e.POST("/api/admin/plate/change/plateInfo", admin.ChangePlateInfo)
+	//修改板块的状态
+	e.POST("/api/admin/plate/change/plateStatus", admin.ChangePlateStatus)
+	//添加板块
+	e.POST("/api/admin/plate/add", admin.AddPlate)
+	//获取所有经验
+	e.GET("/api/admin/plate/get/shareList", admin.GetAllShare)
 
+	//修改话题内容
+	e.POST("/api/admin/topical/edit", admin.ChangeTopicalContent)
+	//获取话题列表
+	e.GET("/api/admin/topical/get/topicalList", admin.GetTopicalList)
+	//修改打卡信息
+	e.POST("/api/admin/card/change/cardInfo", admin.ChangeCardInfo)
+	//获取所有评论
+	e.GET("/api/admin/getAllComment", admin.GetAllComment)
+	//删除评论
+	e.POST("/api/admin/comment/delete", admin.DeleteComment)
+
+	//数据可视化
+	e.GET("/api/admin/data/getCollege", admin.DataGetCollege)
+	//获取经验分布数据
+	e.GET("/api/admin/data/getShare", admin.DataGetShare)
+	//获取热门话题(只显示10条)
+	e.GET("/api/admin/data/getTopical", admin.DataGetTopical)
 }

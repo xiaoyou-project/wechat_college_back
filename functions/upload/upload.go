@@ -33,7 +33,7 @@ func UploadFile(c echo.Context) error {
 	//创建文件
 	year := "static/images/" + strconv.Itoa(time.Now().Year())
 	month := strconv.Itoa(int(time.Now().Month()))
-	filename := year + "/" + month + "/" + time.Now().Format("150405") + suffix
+	filename := year + "/" + month + "/" + time.Now().Format("150405") + common.GetRandomNum(5) + suffix
 	err = common.CreatePath(year + "/" + month)
 	if err == nil {
 		dst, err := os.Create(filename)
