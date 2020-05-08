@@ -310,17 +310,24 @@ func GetAllShare(c echo.Context) error {
 
 //获取各个学院的人数分布
 func DataGetCollege(c echo.Context) error {
+	type College struct {
+		Data    []map[string]string `json:"data"`
+		College []string            `json:"college"`
+	}
 	if result, err := sql.Sql_dql("select college,count(ID) from user_info group by college"); err == nil && result[0][0] != "" {
-		datas := new([]map[string]string)
+		college := new(College)
+		college.Data = *new([]map[string]string)
+		college.College = *new([]string)
 		//遍历result
 		for _, v := range result {
 			data := make(map[string]string)
 			//判断类型获取标题和id
 			data["name"] = v[0]
-			data["values"] = v[1]
-			*datas = append(*datas, data)
+			data["value"] = v[1]
+			college.Data = append(college.Data, data)
+			college.College = append(college.College, v[0])
 		}
-		str, _ := json.Marshal(datas)
+		str, _ := json.Marshal(college)
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
 	} else {
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":[],"msg":"获取数据失败"}`))
@@ -362,6 +369,29 @@ func DataGetTopical(c echo.Context) error {
 		datas = append(datas, good)
 		datas = append(datas, comment)
 		datas = append(datas, view)
+		str, _ := json.Marshal(datas)
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
+	} else {
+		return c.JSONBlob(http.StatusOK, []byte(`{"code":0,"data":[],"msg":"获取数据失败"}`))
+	}
+}
+
+//获取打卡的详细数据
+func DataGetCard(c echo.Context) error {
+	if result, err := sql.Sql_dql("select a.title,a.totalDay,(select count(ID) from user_card where a.ID=cardID) from card a"); err == nil && result[0][0] != "" {
+		datas := *new([][]string)
+		name := *new([]string)
+		total := *new([]string)
+		people := *new([]string)
+		//遍历result
+		for _, v := range result {
+			name = append(name, v[0])
+			total = append(total, v[1])
+			people = append(people, v[2])
+		}
+		datas = append(datas, name)
+		datas = append(datas, total)
+		datas = append(datas, people)
 		str, _ := json.Marshal(datas)
 		return c.JSONBlob(http.StatusOK, []byte(`{"code":1,"data":`+string(str)+`,"msg":"获取数据成功"}`))
 	} else {

@@ -154,4 +154,6 @@ func Route(e *echo.Echo) {
 	e.GET("/api/admin/data/getShare", admin.DataGetShare)
 	//获取热门话题(只显示10条)
 	e.GET("/api/admin/data/getTopical", admin.DataGetTopical)
+	//获取打卡的详细数据
+	e.GET("/api/admin/data/getCard", admin.DataGetCard)
 }
